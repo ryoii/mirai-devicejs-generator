@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>device.json generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <style>
+        .input {
+            outline-style: none;
+            border: 1px solid #ccc;
+            border-radius: 13px;
+            padding: 10px 11px;
+            margin-bottom: 20px;
+            width: 80%;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: "Microsoft soft";
+
+        }
+        input:focus {
+            border-color: #66afe9;
+            outline: 0;
+            -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgba(102, 175, 233, .6);
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgba(102, 175, 233, .6)
+        }
+        .form {
+            text-align: center;
+            overflow: hidden;
+            margin-top: 50px;
+        }
+        .form .form-el {
+            float: left;
+            width: 50%;
+        }
+        .bt-gen {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <h3>Mirai device.js 生成器，不负责数据校验，确保重要参数填写正确</h3>
+        <div class="form">
+            <div class="form-el">
+                <div>
+                    <input class="input" type="text" v-model="display" placeholder="设备显示屏参数，如：OPR1.170623.027">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="product" placeholder="设备产品的名称，自行填写，尽量不要太长">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="device" placeholder="设备参数，如：sagit">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="board" placeholder="设备主板，如：msm8998">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="brand" placeholder="系统定制商，如：Xiaomi">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="model" placeholder="设备型号，如：MI 6">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="bootloader" placeholder="系统启动程序版本号，可填unknown">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="fingerprint"
+                        placeholder="设备指纹，唯一识别码，如：Xiaomi/sagit/sagit:8.0.0/OPR1.170623.027/V9.5.3.0.OCACNFA:user/release-keys">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="bootId" placeholder="UUID格式16位MD5，如：XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX">
+                </div>
+            </div>
+            <div class="form-el">
+                <div>
+                    <input class="input" type="text" v-model="procVersion"
+                        placeholder="系统版本，系统中/proc/version的值，如Linux version 4.9.0-9-amd64 (debian-kernel@lists.debian.org)">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="simInfo" placeholder="SIM卡信息，unknown">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="osType" placeholder="系统类型，填android">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="macAddress" placeholder="MAC地址：XX-XX-XX-XX-XX-XX">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="wifiBSSID"
+                        placeholder="wifi mac, 填02:00:00:00:00:00, 安卓新版本不可获取">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="wifiSSID" placeholder="wifi名称，随意">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="imsiMd5" placeholder="国际移动用户识别码MD5，随便给个16位MD5即可">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="imei" placeholder="IMEI手机序列号,具有校验规则，建议自行生成">
+                </div>
+                <div>
+                    <input class="input" type="text" v-model="apn" placeholder="apn, 填wifi">
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center;margin-top: 25px;">
+            <button class="input bt-gen" @click="generate">Generate</button>
+        </div>
+        <br>
+    </div>
+</body>
+<script type="application/javascript">
+    let vm = new Vue({
+        el: '#app',
+        data: {
+            display: '',
+            product: '',
+            device: '',
+            board: '',
+            brand: '',
+            model: '',
+            bootloader: '',
+            fingerprint: '',
+            bootId: '',
+            procVersion: '',
+            simInfo: '',
+            osType: '',
+            macAddress: '',
+            wifiBSSID: '',
+            wifiSSID: '',
+            imsiMd5: '',
+            imei: '',
+            apn: ''
+        },
+        methods: {
+            generate: function () {
+                this.download(JSON.stringify(this.buildObj(vm.$data)))
+            },
+            stringToByte: function (str) {
+                var bytes = new Array();
+                var len, c;
+                len = str.length;
+                for (var i = 0; i < len; i++) {
+                    c = str.charCodeAt(i);
+                    if (c >= 0x010000 && c <= 0x10FFFF) {
+                        bytes.push(((c >> 18) & 0x07) | 0xFFFFFFF0);
+                        bytes.push(((c >> 12) & 0x3F) | 0xFFFFFF80);
+                        bytes.push(((c >> 6) & 0x3F) | 0xFFFFFF80);
+                        bytes.push((c & 0x3F) | 0xFFFFFF80);
+                    } else if (c >= 0x000800 && c <= 0xFFFFFFFF) {
+                        bytes.push(((c >> 12) & 0x0F) | 0xFFFFFFE0);
+                        bytes.push(((c >> 6) & 0x3F) | 0xFFFFFF80);
+                        bytes.push((c & 0x3F) | 0xFFFFFF80);
+                    } else if (c >= 0x000080 && c <= 0xFF0007FF) {
+                        bytes.push(((c >> 6) & 0x1F) | 0xFFFFFFC0);
+                        bytes.push((c & 0x3F) | 0xFFFFFF80);
+                    } else {
+                        bytes.push(c & 0xFFFFFFFF);
+                    }
+                }
+                return bytes;
+            },
+            hexToByte: function (hex) {
+                var bytes = new Array();
+                while (hex.length >= 2) {
+                    bytes.push(parseInt(hex.substring(0, 2), 16) << 24 >> 24);
+                    hex = hex.substring(2, hex.length);
+                }
+                return bytes;
+            },
+            buildObj: function () {
+                return {
+                    display: this.stringToByte(this.display.length>0?this.display:"Mirai"),
+                    product: this.stringToByte(this.product.length>0?this.product:"Mirai"),
+                    device: this.stringToByte(this.device),
+                    board: this.stringToByte(this.board),
+                    brand: this.stringToByte(this.brand),
+                    model: this.stringToByte(this.model),
+                    bootloader: this.stringToByte(this.bootloader),
+                    fingerprint: this.stringToByte(this.fingerprint),
+                    bootId: this.stringToByte(this.bootId),
+                    procVersion: this.stringToByte(this.procVersion),
+                    baseBand: [],
+                    version: {},
+                    simInfo: this.stringToByte(this.simInfo),
+                    osType: this.stringToByte(this.osType),
+                    macAddress: this.stringToByte(this.macAddress),
+                    wifiBSSID: this.stringToByte(this.wifiBSSID),
+                    wifiSSID: this.stringToByte(this.wifiSSID),
+                    imsiMd5: this.hexToByte(this.imsiMd5),
+                    imei: this.imei,
+                    apn: this.stringToByte(this.apn)
+                }
+            },
+            download: function (content) {
+                const tag = document.createElement('a')
+                const blob = new Blob([content])
+                tag.download = "device.json"
+                tag.href = URL.createObjectURL(blob)
+                tag.click()
+                URL.revokeObjectURL(blob)
+            },
+        }
+    })
+</script>
+
+</html>
